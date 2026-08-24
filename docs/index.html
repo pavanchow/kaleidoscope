@@ -224,8 +224,25 @@ function parseHtml(input){
 
   function decodeEntities(s){
     if (s.indexOf("&") === -1) return s;
-    return s.replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">")
-      .replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&nbsp;/g," ");
+    // Single left-to-right pass so each entity is decoded exactly once, e.g.
+    // "&amp;lt;" becomes the literal "&lt;" rather than being decoded twice.
+    var named = {"amp;":"&","lt;":"<","gt;":">","quot;":'"',"apos;":"'","nbsp;":" "};
+    var out = "", i = 0;
+    while (i < s.length){
+      if (s[i] !== "&"){ out += s[i]; i++; continue; }
+      var rest = s.slice(i+1);
+      var num = rest.match(/^#(x?)([0-9a-fA-F]+);/);
+      if (num){
+        var cp = parseInt(num[2], num[1] ? 16 : 10);
+        if (!isNaN(cp)){ out += String.fromCodePoint(cp); i += 1 + num[0].length; continue; }
+      }
+      var matched = false;
+      for (var k in named){
+        if (rest.indexOf(k) === 0){ out += named[k]; i += 1 + k.length; matched = true; break; }
+      }
+      if (!matched){ out += "&"; i++; }
+    }
+    return out;
   }
 
   function makeElement(tag, attrs, children){
@@ -526,15 +543,30 @@ function specificityFromParts(parts){
   return [ids, classes, types];
 }
 
+var INHERITED_PROPS = ["color", "font-size"];
+
+function applyInheritance(styled, parent){
+  INHERITED_PROPS.forEach(function(p){
+    if (!(p in styled.specified) && (p in parent)) styled.specified[p] = parent[p];
+  });
+  var computed = Object.assign({}, styled.specified);
+  styled.children.forEach(function(c){ applyInheritance(c, computed); });
+}
+
 function styleTree(node, sheet, ancestors){
+  var isRoot = ancestors === undefined;
   ancestors = ancestors || [];
+  var styled;
   if (node.type === "element"){
     var specified = specifiedValues(node, sheet, ancestors);
     var nextAncestors = ancestors.concat([node]);
     var children = node.children.map(function(c){ return styleTree(c, sheet, nextAncestors); });
-    return { node: node, specified: specified, children: children };
+    styled = { node: node, specified: specified, children: children };
+  } else {
+    styled = { node: node, specified: {}, children: [] };
   }
-  return { node: node, specified: {}, children: [] };
+  if (isRoot) applyInheritance(styled, {});
+  return styled;
 }
 
 function displayOf(styled){

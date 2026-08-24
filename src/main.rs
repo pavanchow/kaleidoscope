@@ -4,6 +4,7 @@ mod error;
 mod html;
 mod layout;
 mod paint;
+mod png;
 mod style;
 
 use clap::{Parser, Subcommand};
@@ -41,6 +42,19 @@ enum Command {
         #[arg(long, default_value_t = 800)]
         width: u32,
     },
+    /// Render inline HTML and CSS strings to a base64-encoded PNG on stdout.
+    /// Built for programmatic callers (for example the MCP server) that want
+    /// an image back without touching the filesystem.
+    Snapshot {
+        #[arg(long)]
+        html: String,
+        #[arg(long, default_value = "")]
+        css: String,
+        #[arg(long, default_value_t = 800)]
+        width: u32,
+        #[arg(long, default_value_t = 600)]
+        height: u32,
+    },
 }
 
 fn main() -> ExitCode {
@@ -63,8 +77,17 @@ fn run(cli: Cli) -> Result<(), String> {
             let styled = style::style_tree(&dom, &sheet);
             let root = layout::layout_tree(&styled, width as f32).map_err(|e| e.to_string())?;
             let canvas = paint::paint(&root, width as usize, height as usize);
-            let file = fs::File::create(&output).map_err(|e| e.to_string())?;
-            canvas.write_ppm(file).map_err(|e| e.to_string())?;
+            let is_png = output
+                .extension()
+                .map(|e| e.eq_ignore_ascii_case("png"))
+                .unwrap_or(false);
+            if is_png {
+                let bytes = png::encode(&canvas);
+                fs::write(&output, bytes).map_err(|e| e.to_string())?;
+            } else {
+                let file = fs::File::create(&output).map_err(|e| e.to_string())?;
+                canvas.write_ppm(file).map_err(|e| e.to_string())?;
+            }
             println!("wrote {} ({}x{})", output.display(), width, height);
             Ok(())
         }
@@ -77,7 +100,35 @@ fn run(cli: Cli) -> Result<(), String> {
             print_layout_tree(&root, 0);
             Ok(())
         }
+        Command::Snapshot { html, css, width, height } => {
+            let dom = self::html::parse(&html).map_err(|e| e.to_string())?;
+            let sheet = self::css::parse(&css).map_err(|e| e.to_string())?;
+            let styled = style::style_tree(&dom, &sheet);
+            let root = layout::layout_tree(&styled, width as f32).map_err(|e| e.to_string())?;
+            let canvas = paint::paint(&root, width as usize, height as usize);
+            let bytes = png::encode(&canvas);
+            println!("{}", base64_encode(&bytes));
+            Ok(())
+        }
     }
+}
+
+/// Standard base64 (RFC 4648), written out so the crate keeps its tiny
+/// dependency set. Used to hand a PNG back to a programmatic caller as text.
+fn base64_encode(data: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
+    for chunk in data.chunks(3) {
+        let b0 = chunk[0] as u32;
+        let b1 = *chunk.get(1).unwrap_or(&0) as u32;
+        let b2 = *chunk.get(2).unwrap_or(&0) as u32;
+        let n = (b0 << 16) | (b1 << 8) | b2;
+        out.push(ALPHABET[((n >> 18) & 63) as usize] as char);
+        out.push(ALPHABET[((n >> 12) & 63) as usize] as char);
+        out.push(if chunk.len() > 1 { ALPHABET[((n >> 6) & 63) as usize] as char } else { '=' });
+        out.push(if chunk.len() > 2 { ALPHABET[(n & 63) as usize] as char } else { '=' });
+    }
+    out
 }
 
 fn read_sources(html_path: &PathBuf, css_path: Option<&std::path::Path>) -> Result<(String, String), String> {

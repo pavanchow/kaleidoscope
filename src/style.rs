@@ -40,10 +40,34 @@ pub enum Display {
     None,
 }
 
+/// Properties that flow from a parent to its children when the child does
+/// not set them itself, matching CSS inheritance for the subset supported.
+const INHERITED: &[&str] = &["color", "font-size"];
+
 /// Build a styled tree by matching the stylesheet against every element,
-/// respecting specificity, source order, and inline style overrides.
+/// respecting specificity, source order, and inline style overrides, then
+/// propagate inherited properties down the tree so children and text nodes
+/// pick up their parent's color and font-size.
 pub fn style_tree<'a>(root: &'a Node, stylesheet: &Stylesheet) -> StyledNode<'a> {
-    style_node(root, stylesheet, &[])
+    let mut styled = style_node(root, stylesheet, &[]);
+    apply_inheritance(&mut styled, &BTreeMap::new());
+    styled
+}
+
+fn apply_inheritance(node: &mut StyledNode, parent: &BTreeMap<String, Value>) {
+    for &prop in INHERITED {
+        if !node.specified.contains_key(prop) {
+            if let Some(v) = parent.get(prop) {
+                node.specified.insert(prop.to_string(), v.clone());
+            }
+        }
+    }
+    // Children inherit the node's now-complete computed values, so a value
+    // set high in the tree reaches a deep descendant through each level.
+    let computed = node.specified.clone();
+    for child in &mut node.children {
+        apply_inheritance(child, &computed);
+    }
 }
 
 fn style_node<'a>(node: &'a Node, stylesheet: &Stylesheet, ancestors: &[&'a ElementData]) -> StyledNode<'a> {
@@ -210,6 +234,30 @@ mod tests {
             div.value("color").unwrap().as_color(),
             Some(css::Color::rgb(0, 0, 255))
         );
+    }
+
+    #[test]
+    fn color_and_font_size_inherit_to_children_and_text() {
+        let dom = html::parse("<div><p>hello</p></div>").unwrap();
+        let sheet = css::parse("div { color: #ff0000; font-size: 20px; }").unwrap();
+        let styled = style_tree(&dom, &sheet);
+        let div = &styled.children[0];
+        let p = &div.children[0];
+        // The <p> never set color or font-size, it inherits from <div>.
+        assert_eq!(p.value("color").unwrap().as_color(), Some(css::Color::rgb(255, 0, 0)));
+        assert_eq!(p.value("font-size").unwrap().to_px(), Some(20.0));
+        // The text node inside <p> inherits too, so it lays out at 20px.
+        let text = &p.children[0];
+        assert_eq!(text.value("font-size").unwrap().to_px(), Some(20.0));
+    }
+
+    #[test]
+    fn child_can_override_inherited_value() {
+        let dom = html::parse("<div><p class=\"c\">x</p></div>").unwrap();
+        let sheet = css::parse("div { color: #ff0000; } .c { color: #0000ff; }").unwrap();
+        let styled = style_tree(&dom, &sheet);
+        let p = &styled.children[0].children[0];
+        assert_eq!(p.value("color").unwrap().as_color(), Some(css::Color::rgb(0, 0, 255)));
     }
 
     #[test]

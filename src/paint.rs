@@ -104,11 +104,12 @@ fn blend(dst: [u8; 4], src: Color) -> [u8; 4] {
     if src.a == 0 {
         return dst;
     }
-    let a = src.a as f32 / 255.0;
-    let r = (src.r as f32 * a + dst[0] as f32 * (1.0 - a)) as u8;
-    let g = (src.g as f32 * a + dst[1] as f32 * (1.0 - a)) as u8;
-    let b = (src.b as f32 * a + dst[2] as f32 * (1.0 - a)) as u8;
-    [r, g, b, 255]
+    // Integer alpha compositing: no floats, no rounding drift past 255, and
+    // the `+ 127` gives round-to-nearest instead of truncation.
+    let a = src.a as u16;
+    let ia = 255 - a;
+    let mix = |s: u8, d: u8| -> u8 { ((s as u16 * a + d as u16 * ia + 127) / 255) as u8 };
+    [mix(src.r, dst[0]), mix(src.g, dst[1]), mix(src.b, dst[2]), 255]
 }
 
 pub fn paint(layout_box: &LayoutBox, width: usize, height: usize) -> Canvas {
@@ -127,6 +128,18 @@ mod tests {
     use crate::html;
     use crate::layout::layout_tree;
     use crate::style::style_tree;
+
+    #[test]
+    fn blend_is_exact_at_endpoints_and_midpoint() {
+        // Fully opaque source replaces the destination exactly.
+        assert_eq!(blend([0, 0, 0, 255], Color { r: 10, g: 20, b: 30, a: 255 }), [10, 20, 30, 255]);
+        // Fully transparent source leaves the destination.
+        assert_eq!(blend([10, 20, 30, 255], Color { r: 99, g: 99, b: 99, a: 0 }), [10, 20, 30, 255]);
+        // 50 percent white over black rounds to 128, never overflows 255.
+        assert_eq!(blend([0, 0, 0, 255], Color { r: 255, g: 255, b: 255, a: 128 }), [128, 128, 128, 255]);
+        // Full white over full white stays 255, proving no float overshoot.
+        assert_eq!(blend([255, 255, 255, 255], Color { r: 255, g: 255, b: 255, a: 200 }), [255, 255, 255, 255]);
+    }
 
     #[test]
     fn display_list_has_rect_at_expected_position_and_color() {

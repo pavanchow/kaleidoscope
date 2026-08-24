@@ -1,0 +1,26 @@
+{
+  "name": "kaleidoscope-mcp",
+  "version": "0.1.0",
+  "description": "MCP server that renders HTML and CSS to a PNG with the Kaleidoscope engine, for AI agents that need a browser-free visual feedback loop",
+  "type": "module",
+  "bin": {
+    "kaleidoscope-mcp": "index.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "browser-engine",
+    "html",
+    "css",
+    "render",
+    "png"
+  ],
+  "author": "Pavan Nallamothu",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

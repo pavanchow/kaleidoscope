@@ -363,16 +363,71 @@ fn frame_to_node(frame: OpenFrame) -> Node {
     Node::Element(data)
 }
 
+/// Decode HTML entities in a SINGLE left-to-right pass. Each entity is
+/// consumed exactly once, so text like `&amp;lt;` correctly decodes to the
+/// literal `&lt;` rather than being decoded twice into `<`. Numeric entities
+/// (`&#60;` and `&#x3c;`) are handled too. An unrecognized `&` is left as is.
 fn decode_entities(s: &str) -> String {
     if !s.contains('&') {
         return s.to_string();
     }
-    s.replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&apos;", "'")
-        .replace("&nbsp;", "\u{a0}")
+    const NAMED: &[(&str, char)] = &[
+        ("amp;", '&'),
+        ("lt;", '<'),
+        ("gt;", '>'),
+        ("quot;", '"'),
+        ("apos;", '\''),
+        ("nbsp;", '\u{a0}'),
+    ];
+    let mut out = String::with_capacity(s.len());
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    'outer: while i < bytes.len() {
+        if bytes[i] != b'&' {
+            // Copy one full UTF-8 char so multibyte text survives intact.
+            let ch = s[i..].chars().next().unwrap();
+            out.push(ch);
+            i += ch.len_utf8();
+            continue;
+        }
+        let rest = &s[i + 1..];
+        // Numeric entity: &#123; or &#x1F;
+        if let Some(after) = rest.strip_prefix('#') {
+            let (hex, digits) = match after.strip_prefix(['x', 'X']) {
+                Some(h) => (true, h),
+                None => (false, after),
+            };
+            let end = digits.find(';');
+            if let Some(end) = end {
+                let num = &digits[..end];
+                let parsed = if hex {
+                    u32::from_str_radix(num, 16)
+                } else {
+                    num.parse::<u32>()
+                };
+                if let Ok(cp) = parsed {
+                    if let Some(ch) = char::from_u32(cp) {
+                        out.push(ch);
+                        // consumed '&' '#' optional 'x' digits ';'
+                        let consumed = 1 + 1 + if hex { 1 } else { 0 } + num.len() + 1;
+                        i += consumed;
+                        continue;
+                    }
+                }
+            }
+        }
+        for (name, ch) in NAMED {
+            if rest.starts_with(name) {
+                out.push(*ch);
+                i += 1 + name.len();
+                continue 'outer;
+            }
+        }
+        // Not a recognized entity, keep the literal ampersand.
+        out.push('&');
+        i += 1;
+    }
+    out
 }
 
 #[cfg(test)]
@@ -382,6 +437,18 @@ mod tests {
     fn root_children(html: &str) -> Vec<Node> {
         let doc = parse(html).unwrap();
         doc.as_element().unwrap().children.clone()
+    }
+
+    #[test]
+    fn entities_decode_in_a_single_pass() {
+        assert_eq!(decode_entities("a &amp; b"), "a & b");
+        // The literal text `&lt;` is encoded as `&amp;lt;` and must decode
+        // back to `&lt;`, not be double-decoded into `<`.
+        assert_eq!(decode_entities("&amp;lt;"), "&lt;");
+        assert_eq!(decode_entities("&lt;div&gt;"), "<div>");
+        assert_eq!(decode_entities("&#60;&#x3e;"), "<>");
+        // An ampersand that starts no known entity is left untouched.
+        assert_eq!(decode_entities("Tom & Jerry"), "Tom & Jerry");
     }
 
     #[test]
