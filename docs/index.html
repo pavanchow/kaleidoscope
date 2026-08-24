@@ -2,11 +2,808 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>kaleidoscope</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kaleidoscope: a browser engine in Rust you can read end to end</title>
+<meta name="description" content="Kaleidoscope is a browser engine in Rust built from scratch: an HTML parser, a CSS parser, the cascade, block layout, and paint, small enough to read end to end. Try it live in the browser.">
+<meta name="author" content="Pavan Nallamothu (pavanchow)">
+<meta name="keywords" content="browser engine in Rust, HTML parser, CSS parser, layout engine, box model, render tree, from scratch, Pavan Nallamothu, pavanchow">
+<link rel="canonical" href="https://pavanchow.github.io/kaleidoscope/">
+<link rel="author" href="https://github.com/pavanchow">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Kaleidoscope: a browser engine in Rust you can read end to end">
+<meta property="og:description" content="A browser engine in Rust built from scratch: HTML parser, CSS parser, the cascade, block layout, and paint. Try it live in the browser.">
+<meta property="og:url" content="https://pavanchow.github.io/kaleidoscope/">
+<meta property="og:site_name" content="Kaleidoscope">
+<meta property="og:image" content="https://pavanchow.github.io/kaleidoscope/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Kaleidoscope: a browser engine in Rust you can read end to end">
+<meta name="twitter:description" content="A browser engine in Rust built from scratch: HTML parser, CSS parser, the cascade, block layout, and paint. Try it live in the browser.">
+<meta name="twitter:image" content="https://pavanchow.github.io/kaleidoscope/og-image.png">
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Person","name":"Pavan Nallamothu","alternateName":"pavanchow","url":"https://github.com/pavanchow","sameAs":["https://github.com/pavanchow","https://hackerone.com/pavanchow"]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Kaleidoscope","applicationCategory":"DeveloperApplication","operatingSystem":"Cross-platform","softwareVersion":"0.1.0","author":{"@type":"Person","name":"Pavan Nallamothu","url":"https://github.com/pavanchow"},"description":"A browser rendering engine in Rust built from scratch: HTML parser, CSS parser, the cascade, block layout, and paint, small enough to read end to end.","url":"https://pavanchow.github.io/kaleidoscope/","codeRepository":"https://github.com/pavanchow/kaleidoscope"}
+</script>
+
+<style>
+  :root{
+    --accent:#5b5bd6;--accent-soft:#eeeefb;
+    --ink:#15161c;--muted:#6a6d78;--faint:#9a9dab;
+    --line:#ececed;--panel:#f7f7f9;--panel2:#fbfbfd;
+    --mono:ui-monospace,SFMono-Regular,Menlo,"SF Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:#fff;color:var(--ink);
+    font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 28px}
+  a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+
+  nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.82);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line)}
+  nav .row{display:flex;justify-content:space-between;align-items:center;height:56px;max-width:1040px;margin:0 auto;padding:0 28px}
+  nav .brand{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:650;letter-spacing:-.01em}
+  nav .brand .gem{width:16px;height:16px;transform:rotate(45deg);border-radius:3px;background:linear-gradient(135deg,#9a9af4,#5b5bd6)}
+  nav .links{display:flex;gap:26px;align-items:center}
+  nav .links a{color:var(--ink);font-size:14.5px}
+  @media(max-width:640px){nav .links a:not(.gh){display:none}}
+
+  .hero{padding:70px 0 30px;text-align:center}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+  h1{font-size:clamp(38px,6.6vw,66px);line-height:1.05;letter-spacing:-.035em;font-weight:680;margin:18px 0 0}
+  .hero p.sub{max-width:640px;margin:24px auto 0;font-size:clamp(17px,2.1vw,21px);color:var(--muted)}
+
+  .stage{max-width:980px;margin:44px auto 0;padding:0 28px}
+  .card{position:relative;background:linear-gradient(180deg,#fbfbff,#f4f4fb);border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:0 1px 0 #fff inset,0 18px 50px -30px rgba(40,40,90,.35);padding:22px}
+
+  .editors{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.editors{grid-template-columns:1fr}}
+  .field label{display:block;font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  textarea{width:100%;height:150px;resize:vertical;background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;font-family:var(--mono);font-size:12.5px;color:var(--ink);line-height:1.5}
+  textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(91,91,214,.12)}
+
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
+  .go{cursor:pointer;padding:11px 22px;border-radius:980px;border:none;background:var(--accent);color:#fff;font-weight:600;font-size:14.5px}
+  .go:hover{background:#4a4ac4}
+  .go.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .go.secondary:hover{border-color:var(--ink);background:var(--panel)}
+  .status{font-family:var(--mono);font-size:12px;color:var(--faint)}
+
+  .canvas-wrap{margin-top:16px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+  canvas{display:block;width:100%;height:auto;background:#fff}
+
+  section{padding:92px 0;border-top:1px solid var(--line)}
+  h2{font-size:clamp(27px,4.2vw,42px);line-height:1.12;letter-spacing:-.025em;font-weight:660;text-align:center;max-width:760px;margin:0 auto}
+  .lead{max-width:620px;margin:22px auto 0;text-align:center;color:var(--muted);font-size:18px}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:900px;margin:48px auto 0}
+  @media(max-width:720px){.steps{grid-template-columns:1fr}}
+  .step{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:24px}
+  .step .n{display:inline-flex;width:28px;height:28px;border-radius:8px;background:var(--accent-soft);color:var(--accent);align-items:center;justify-content:center;font:700 13px var(--mono);margin-bottom:12px}
+  .step h3{font-size:17px;margin-bottom:6px}.step p{color:var(--muted);font-size:15px}
+  pre{background:#15161c;color:#ececf4;border-radius:14px;padding:20px 22px;font-family:var(--mono);font-size:13.5px;overflow-x:auto;max-width:640px;margin:40px auto 0}
+  pre .c{color:#8a8d9a}
+  footer{padding:64px 0;border-top:1px solid var(--line);text-align:center;color:var(--muted)}
+  footer .name{color:var(--ink);font-weight:600}
+</style>
 </head>
 <body>
-<h1>kaleidoscope</h1>
-<p>Site coming soon.</p>
-<p><a href="https://github.com/pavanchow/kaleidoscope">View repository</a></p>
+  <nav><div class="row">
+    <div class="brand"><span class="gem"></span>Kaleidoscope</div>
+    <div class="links">
+      <a href="#demo">Demo</a><a href="#how">How it works</a><a href="#source">Source</a>
+      <a class="gh" href="https://github.com/pavanchow/kaleidoscope">GitHub</a>
+    </div>
+  </div></nav>
+
+  <div id="demo" class="hero">
+    <p class="eyebrow">Rust &middot; from scratch &middot; no browser dependencies</p>
+    <h1>HTML and CSS in,<br>a painted image out.</h1>
+    <p class="sub">Kaleidoscope is a browser engine in Rust: it parses HTML into a DOM, parses CSS into rules, applies the cascade, lays out boxes, and paints pixels. The whole pipeline, small enough to read end to end. Edit the HTML or CSS below and watch it render, live, right here.</p>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <div class="editors">
+        <div class="field">
+          <label for="html-in">HTML</label>
+          <textarea id="html-in" spellcheck="false"></textarea>
+        </div>
+        <div class="field">
+          <label for="css-in">CSS</label>
+          <textarea id="css-in" spellcheck="false"></textarea>
+        </div>
+      </div>
+      <div class="bar">
+        <button class="go" id="render-btn">Render</button>
+        <button class="go secondary" id="boxes-btn">Toggle box outlines</button>
+        <span class="status" id="status">ready</span>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="canvas" width="900" height="480"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <section id="how">
+    <h2>The whole pipeline, five small stages</h2>
+    <p class="lead">No browser engine borrowed, no rendering library included. Every stage below runs the same way in the Rust binary and in the JavaScript powering the demo above.</p>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><h3>HTML parser</h3><p>A tolerant tokenizer and tree builder turns tags, attributes, text, and comments into a DOM tree. Unclosed tags recover instead of failing.</p></div>
+      <div class="step"><span class="n">2</span><h3>CSS parser</h3><p>Selectors (type, id, class, universal, descendant), declarations, lengths, and colors become a stylesheet of rules in source order.</p></div>
+      <div class="step"><span class="n">3</span><h3>The cascade</h3><p>Rules are matched against every node and sorted by specificity then source order. An inline style attribute always wins.</p></div>
+      <div class="step"><span class="n">4</span><h3>Block layout</h3><p>Each box takes its containing block's width, stacks its children vertically, and derives its own height, honoring margin, border, and padding.</p></div>
+      <div class="step"><span class="n">5</span><h3>Paint</h3><p>The layout tree becomes a display list of solid rectangles, then the rectangles are rasterized into a pixel buffer, one row at a time.</p></div>
+    </div>
+    <pre><span class="c">// the box model equation layout.rs solves for every box</span>
+width + padding + border + margin = containing block width</pre>
+  </section>
+
+  <section id="source">
+    <h2>Read the source, not just the output</h2>
+    <p class="lead">The CLI builds the same pipeline as this page. Point it at an HTML file and a stylesheet, and it writes a PPM image or prints the layout tree with exact pixel coordinates for every box.</p>
+    <pre>kaleidoscope render page.html --css style.css --width 800 --height 600 -o out.ppm
+kaleidoscope layout page.html --css style.css --width 800</pre>
+  </section>
+
+  <noscript>
+    Kaleidoscope is a browser engine in Rust built from scratch: an HTML parser, a CSS parser, the cascade, block layout, and paint, small enough to read end to end. This page includes a live in-browser demo of the pipeline, which requires JavaScript to run. By Pavan Nallamothu (pavanchow).
+  </noscript>
+
+  <footer>
+    <div class="wrap">
+      By <span class="name">Pavan Nallamothu (pavanchow)</span> &middot;
+      <a href="https://github.com/pavanchow/kaleidoscope">github.com/pavanchow/kaleidoscope</a>
+    </div>
+  </footer>
+
+<script>
+(function(){
+"use strict";
+
+var MAX_INPUT = 200000;
+var MAX_DOM_DEPTH = 200;
+var MAX_LAYOUT_DEPTH = 200;
+var VOID_ELEMENTS = {area:1,base:1,br:1,col:1,embed:1,hr:1,img:1,input:1,link:1,meta:1,param:1,source:1,track:1,wbr:1};
+var NAMED_COLORS = {black:"#000000",white:"#ffffff",red:"#ff0000",green:"#008000",blue:"#0000ff",yellow:"#ffff00",gray:"#808080",grey:"#808080",orange:"#ffa500",purple:"#800080"};
+
+/* ---------- stage 1: HTML parser -> DOM tree ---------- */
+
+function parseHtml(input){
+  if (input.length > MAX_INPUT) throw new Error("input too large");
+  var pos = 0;
+  var len = input.length;
+
+  function peek(){ return input[pos]; }
+  function startsWith(s){ return input.startsWith(s, pos); }
+  function eof(){ return pos >= len; }
+
+  function skipUntil(ch){ while(!eof() && input[pos] !== ch) pos++; }
+
+  function consumeTagName(){
+    var start = pos;
+    while(!eof() && /[a-zA-Z0-9\-:]/.test(input[pos])) pos++;
+    return input.slice(start, pos);
+  }
+
+  function consumeAttributes(){
+    var attrs = {};
+    while(true){
+      while(!eof() && /\s/.test(input[pos])) pos++;
+      if (eof() || peek() === ">" || peek() === "/") break;
+      var nameStart = pos;
+      while(!eof() && !/[\s=\/>]/.test(input[pos])) pos++;
+      if (pos === nameStart) { pos++; continue; }
+      var name = input.slice(nameStart, pos).toLowerCase();
+      while(!eof() && /\s/.test(input[pos])) pos++;
+      var value = "";
+      if (peek() === "="){
+        pos++;
+        while(!eof() && /\s/.test(input[pos])) pos++;
+        var q = peek();
+        if (q === '"' || q === "'"){
+          pos++;
+          var vStart = pos;
+          while(!eof() && input[pos] !== q) pos++;
+          value = input.slice(vStart, pos);
+          if (peek() === q) pos++;
+        } else {
+          var vStart2 = pos;
+          while(!eof() && !/[\s>]/.test(input[pos])) pos++;
+          value = input.slice(vStart2, pos);
+        }
+      }
+      if (name) attrs[name] = value;
+    }
+    return attrs;
+  }
+
+  function decodeEntities(s){
+    if (s.indexOf("&") === -1) return s;
+    return s.replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">")
+      .replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&nbsp;/g," ");
+  }
+
+  function makeElement(tag, attrs, children){
+    return { type: "element", tag: tag, attrs: attrs || {}, children: children || [] };
+  }
+
+  var stack = [ makeElement("html", {}, []) ];
+
+  while(!eof()){
+    if (stack.length > MAX_DOM_DEPTH) throw new Error("nesting too deep");
+
+    if (startsWith("<!--")){
+      pos += 4;
+      var cStart = pos;
+      while(!eof() && !startsWith("-->")) pos++;
+      var text = input.slice(cStart, pos);
+      if (startsWith("-->")) pos += 3;
+      stack[stack.length-1].children.push({ type:"comment", text:text });
+      continue;
+    }
+    if (startsWith("<!")){
+      skipUntil(">"); if(!eof()) pos++;
+      continue;
+    }
+    if (peek() === "<"){
+      if (startsWith("</")){
+        pos += 2;
+        var closeName = consumeTagName().toLowerCase();
+        skipUntil(">"); if(!eof()) pos++;
+        if (closeName){
+          var idx = -1;
+          for (var i = stack.length - 1; i >= 0; i--){
+            if (stack[i].tag === closeName){ idx = i; break; }
+          }
+          if (idx > 0){
+            while (stack.length > idx + 1){
+              var f = stack.pop();
+              stack[stack.length-1].children.push(f);
+            }
+            var f2 = stack.pop();
+            stack[stack.length-1].children.push(f2);
+          }
+        }
+        continue;
+      }
+      var nextCh = input[pos+1];
+      if (nextCh && /[a-zA-Z]/.test(nextCh)){
+        pos++;
+        var tag = consumeTagName().toLowerCase();
+        var attrs = consumeAttributes();
+        while(!eof() && /\s/.test(input[pos])) pos++;
+        var selfClosing = false;
+        if (peek() === "/"){ selfClosing = true; pos++; }
+        if (peek() === ">") pos++;
+
+        if (selfClosing || VOID_ELEMENTS[tag]){
+          stack[stack.length-1].children.push(makeElement(tag, attrs, []));
+          continue;
+        }
+        if (tag === "script" || tag === "style"){
+          var closer = "</" + tag;
+          var rawStart = pos;
+          while(!eof() && input.slice(pos, pos+closer.length).toLowerCase() !== closer) pos++;
+          var raw = input.slice(rawStart, pos);
+          if (input.slice(pos, pos+closer.length).toLowerCase() === closer){
+            skipUntil(">"); if(!eof()) pos++;
+          }
+          stack[stack.length-1].children.push(makeElement(tag, attrs, [{type:"text", text: raw}]));
+          continue;
+        }
+        stack.push(makeElement(tag, attrs, []));
+        continue;
+      } else {
+        pos++;
+        stack[stack.length-1].children.push({ type:"text", text:"<" });
+        continue;
+      }
+    }
+    var tStart = pos;
+    while(!eof() && input[pos] !== "<") pos++;
+    var raw2 = input.slice(tStart, pos);
+    if (raw2) stack[stack.length-1].children.push({ type:"text", text: decodeEntities(raw2) });
+  }
+
+  while (stack.length > 1){
+    var last = stack.pop();
+    stack[stack.length-1].children.push(last);
+  }
+  var root = stack.pop();
+  var elementChildren = root.children.filter(function(c){ return c.type === "element"; });
+  if (elementChildren.length === 1 && elementChildren[0].tag === "html"){
+    return elementChildren[0];
+  }
+  return root;
+}
+
+/* ---------- stage 2: CSS parser -> stylesheet ---------- */
+
+function parseCss(input){
+  if (input.length > MAX_INPUT) throw new Error("input too large");
+  var pos = 0, len = input.length;
+  function peek(){ return input[pos]; }
+  function eof(){ return pos >= len; }
+  function skipWs(){
+    while(true){
+      while(!eof() && /\s/.test(input[pos])) pos++;
+      if (input.slice(pos,pos+2) === "/*"){
+        pos += 2;
+        while(!eof() && input.slice(pos,pos+2) !== "*/") pos++;
+        pos += 2;
+      } else break;
+    }
+  }
+  function consumeIdent(){
+    var start = pos;
+    while(!eof() && /[a-zA-Z0-9\-_]/.test(input[pos])) pos++;
+    return input.slice(start, pos);
+  }
+
+  function parseSimpleSelector(){
+    var sel = { tag:null, id:null, classes:[], universal:false };
+    while(true){
+      var c = peek();
+      if (c === "*"){ sel.universal = true; pos++; }
+      else if (c === "#"){ pos++; sel.id = consumeIdent(); }
+      else if (c === "."){ pos++; sel.classes.push(consumeIdent()); }
+      else if (c && /[a-zA-Z_\-]/.test(c)){ sel.tag = consumeIdent().toLowerCase(); }
+      else break;
+    }
+    return sel;
+  }
+
+  function isSelectorStart(c){
+    return c === "*" || c === "#" || c === "." || (c && /[a-zA-Z_\-]/.test(c));
+  }
+
+  function parseSelector(){
+    var parts = [];
+    while(true){
+      while(!eof() && /[ \t\n\r]/.test(input[pos])) pos++;
+      var simple = parseSimpleSelector();
+      if (simple.tag || simple.id || simple.classes.length || simple.universal) parts.push(simple);
+      var checkpoint = pos;
+      while(!eof() && /[ \t\n\r]/.test(input[pos])) pos++;
+      var c = peek();
+      if (c === "{" || c === "," || eof()){ pos = checkpoint; break; }
+      if (isSelectorStart(c)) continue;
+      pos = checkpoint; break;
+    }
+    return { parts: parts };
+  }
+
+  function specificity(sel){
+    var ids=0, classes=0, types=0;
+    sel.parts.forEach(function(p){
+      if (p.id) ids++;
+      classes += p.classes.length;
+      if (p.tag) types++;
+    });
+    return [ids, classes, types];
+  }
+
+  function parseValue(raw){
+    raw = raw.trim();
+    if (!raw) return null;
+    if (raw[0] === "#") return { kind:"color", hex: raw.slice(1) };
+    var pxMatch = raw.match(/^(-?[0-9.]+)px$/);
+    if (pxMatch) return { kind:"length", px: parseFloat(pxMatch[1]) };
+    if (raw === "0") return { kind:"length", px: 0 };
+    return { kind:"keyword", value: raw };
+  }
+
+  var rules = [];
+  skipWs();
+  while(!eof()){
+    var selectors = [];
+    while(true){
+      skipWs();
+      selectors.push(parseSelector());
+      skipWs();
+      if (peek() === ","){ pos++; continue; }
+      break;
+    }
+    skipWs();
+    if (peek() !== "{") { break; }
+    pos++;
+    var decls = [];
+    while(true){
+      skipWs();
+      if (eof() || peek() === "}") break;
+      if (peek() === ";"){ pos++; continue; }
+      var prop = consumeIdent().toLowerCase();
+      skipWs();
+      if (peek() !== ":"){
+        while(!eof() && peek() !== ";" && peek() !== "}") pos++;
+        continue;
+      }
+      pos++;
+      skipWs();
+      var vStart = pos;
+      while(!eof() && peek() !== ";" && peek() !== "}") pos++;
+      var raw = input.slice(vStart, pos);
+      var value = parseValue(raw);
+      if (value && prop) decls.push({ property: prop, value: value });
+      skipWs();
+      if (peek() === ";") pos++;
+    }
+    skipWs();
+    if (peek() === "}") pos++;
+    rules.push({ selectors: selectors, declarations: decls });
+    skipWs();
+  }
+  return { rules: rules };
+}
+
+/* ---------- stage 3: the cascade -> styled tree ---------- */
+
+function hasClass(node, name){
+  var c = node.attrs && node.attrs["class"];
+  if (!c) return false;
+  return c.split(/\s+/).indexOf(name) !== -1;
+}
+
+function simpleMatches(sel, node){
+  if (sel.tag && sel.tag !== node.tag) return false;
+  if (sel.id && sel.id !== (node.attrs && node.attrs.id)) return false;
+  for (var i = 0; i < sel.classes.length; i++){
+    if (!hasClass(node, sel.classes[i])) return false;
+  }
+  return true;
+}
+
+function selectorMatches(parts, ancestors, node){
+  if (!parts.length) return false;
+  var last = parts[parts.length-1];
+  if (!simpleMatches(last, node)) return false;
+  var rest = parts.slice(0, parts.length-1);
+  if (!rest.length) return true;
+  var idx = ancestors.length;
+  for (var r = rest.length - 1; r >= 0; r--){
+    var needle = rest[r];
+    var found = false;
+    while (idx > 0){
+      idx--;
+      if (simpleMatches(needle, ancestors[idx])){ found = true; break; }
+    }
+    if (!found) return false;
+  }
+  return true;
+}
+
+function specificityCmp(a, b){
+  for (var i = 0; i < 3; i++){ if (a[i] !== b[i]) return a[i]-b[i]; }
+  return 0;
+}
+
+function specifiedValues(node, sheet, ancestors){
+  var matched = [];
+  sheet.rules.forEach(function(rule, ruleOrder){
+    for (var i = 0; i < rule.selectors.length; i++){
+      var sel = rule.selectors[i];
+      if (selectorMatches(sel.parts, ancestors, node)){
+        var spec = specificityFromParts(sel.parts);
+        rule.declarations.forEach(function(decl){
+          matched.push({ spec: spec, order: ruleOrder, decl: decl });
+        });
+        break;
+      }
+    }
+  });
+  matched.sort(function(a,b){
+    var c = specificityCmp(a.spec, b.spec);
+    if (c !== 0) return c;
+    return a.order - b.order;
+  });
+  var result = {};
+  matched.forEach(function(m){ result[m.decl.property] = m.decl.value; });
+
+  var inline = node.attrs && node.attrs.style;
+  if (inline){
+    try {
+      var wrapped = parseCss("x{" + inline + "}");
+      wrapped.rules.forEach(function(r){
+        r.declarations.forEach(function(d){ result[d.property] = d.value; });
+      });
+    } catch(e) {}
+  }
+  return result;
+}
+
+function specificityFromParts(parts){
+  var ids=0, classes=0, types=0;
+  parts.forEach(function(p){
+    if (p.id) ids++;
+    classes += p.classes.length;
+    if (p.tag) types++;
+  });
+  return [ids, classes, types];
+}
+
+function styleTree(node, sheet, ancestors){
+  ancestors = ancestors || [];
+  if (node.type === "element"){
+    var specified = specifiedValues(node, sheet, ancestors);
+    var nextAncestors = ancestors.concat([node]);
+    var children = node.children.map(function(c){ return styleTree(c, sheet, nextAncestors); });
+    return { node: node, specified: specified, children: children };
+  }
+  return { node: node, specified: {}, children: [] };
+}
+
+function displayOf(styled){
+  var d = styled.specified.display;
+  if (d && d.kind === "keyword"){
+    if (d.value === "inline") return "inline";
+    if (d.value === "none") return "none";
+  }
+  return "block";
+}
+
+function colorOf(value){
+  if (!value) return null;
+  if (value.kind === "color"){
+    var hex = value.hex;
+    if (hex.length === 3){
+      var r = parseInt(hex[0]+hex[0],16), g=parseInt(hex[1]+hex[1],16), b=parseInt(hex[2]+hex[2],16);
+      return {r:r,g:g,b:b};
+    }
+    if (hex.length === 6){
+      return { r: parseInt(hex.slice(0,2),16), g: parseInt(hex.slice(2,4),16), b: parseInt(hex.slice(4,6),16) };
+    }
+    return null;
+  }
+  if (value.kind === "keyword" && NAMED_COLORS[value.value]){
+    return colorOf({ kind:"color", hex: NAMED_COLORS[value.value].slice(1) });
+  }
+  return null;
+}
+
+function pxOf(value){
+  if (!value) return null;
+  if (value.kind === "length") return value.px;
+  return null;
+}
+
+function isAuto(value){
+  return !!(value && value.kind === "keyword" && value.value === "auto");
+}
+
+/* ---------- stage 4: block layout -> layout tree ---------- */
+
+function buildLayoutTree(styled, depth){
+  if (depth > MAX_LAYOUT_DEPTH) throw new Error("layout too deep");
+  if (styled.node.type === "comment") return null;
+  if (displayOf(styled) === "none" && styled.node.type === "element") return null;
+  if (styled.node.type === "text"){
+    var text = styled.node.text;
+    if (!text.trim()) return null;
+    return { kind:"text", text:text, styled: styled, dims: freshDims(), children: [] };
+  }
+  var children = [];
+  styled.children.forEach(function(c){
+    var box = buildLayoutTree(c, depth+1);
+    if (box) children.push(box);
+  });
+  return { kind:"block", styled: styled, dims: freshDims(), children: children };
+}
+
+function freshDims(){
+  return {
+    x:0, y:0, width:0, height:0,
+    padding:0, border:0,
+    marginLeft:0, marginRight:0, marginTop:0, marginBottom:0
+  };
+}
+
+function borderBox(box){
+  var d = box.dims;
+  return {
+    x: d.x - d.padding - d.border,
+    y: d.y - d.padding - d.border,
+    width: d.width + 2*(d.padding + d.border),
+    height: d.height + 2*(d.padding + d.border)
+  };
+}
+
+function paddingBox(box){
+  var d = box.dims;
+  return {
+    x: d.x - d.padding,
+    y: d.y - d.padding,
+    width: d.width + 2*d.padding,
+    height: d.height + 2*d.padding
+  };
+}
+
+function marginBoxHeight(box){
+  var d = box.dims;
+  return d.height + 2*(d.padding + d.border) + d.marginTop + d.marginBottom;
+}
+
+function calcWidth(box, containingWidth){
+  var s = box.styled.specified;
+  var widthVal = pxOf(s.width);
+  var widthAuto = isAuto(s.width) || widthVal === null;
+  var width = widthVal || 0;
+
+  var marginAuto = isAuto(s.margin);
+  var marginPx = pxOf(s.margin) || 0;
+  var marginLeft = marginPx, marginRight = marginPx;
+
+  var border = pxOf(s["border-width"]) || 0;
+  var padding = pxOf(s.padding) || 0;
+
+  var total = marginLeft + marginRight + border*2 + padding*2 + width;
+  var underflow = containingWidth - total;
+
+  if (!widthAuto){
+    if (marginAuto){ marginLeft = underflow/2; marginRight = underflow/2; }
+    else { marginRight += underflow; }
+  } else {
+    if (marginAuto){ marginLeft = 0; marginRight = 0; }
+    if (underflow >= 0){ width = underflow; }
+    else { width = 0; marginRight += underflow; }
+  }
+
+  box.dims.width = Math.max(width, 0);
+  box.dims.padding = padding;
+  box.dims.border = border;
+  box.dims.marginLeft = marginLeft;
+  box.dims.marginRight = marginRight;
+  box.dims.marginTop = marginPx;
+  box.dims.marginBottom = marginPx;
+}
+
+function calcPosition(box, containing){
+  box.dims.x = containing.x + box.dims.marginLeft + box.dims.border + box.dims.padding;
+  box.dims.y = containing.y + containing.height + box.dims.marginTop + box.dims.border + box.dims.padding;
+}
+
+var DEFAULT_FONT_SIZE = 16;
+
+function layoutChildren(box, depth){
+  if (box.kind === "text"){
+    var fontSize = pxOf(box.styled.specified["font-size"]) || DEFAULT_FONT_SIZE;
+    box.dims.height = fontSize * 1.2;
+    return;
+  }
+  box.children.forEach(function(child){
+    var containing = { x: box.dims.x, y: box.dims.y, width: box.dims.width, height: box.dims.height };
+    layoutBlock(child, containing, depth+1);
+    box.dims.height += marginBoxHeight(child);
+  });
+}
+
+function calcHeight(box){
+  var h = pxOf(box.styled.specified.height);
+  if (h !== null) box.dims.height = h;
+}
+
+function layoutBlock(box, containing, depth){
+  if (depth > MAX_LAYOUT_DEPTH) throw new Error("layout too deep");
+  calcWidth(box, containing.width);
+  calcPosition(box, containing);
+  layoutChildren(box, depth);
+  calcHeight(box);
+}
+
+function layoutTree(styledRoot, viewportWidth){
+  var root = buildLayoutTree(styledRoot, 0);
+  if (!root) root = { kind:"block", styled: styledRoot, dims: freshDims(), children: [] };
+  var containing = { x:0, y:0, width: viewportWidth, height: 0 };
+  layoutBlock(root, containing, 0);
+  return root;
+}
+
+/* ---------- stage 5: paint -> display list -> pixels ---------- */
+
+function buildDisplayList(box, list){
+  list = list || [];
+  if (box.kind === "block"){
+    var s = box.styled.specified;
+    if (box.dims.border > 0){
+      var borderColor = colorOf(s["border-color"]) || {r:0,g:0,b:0};
+      list.push({ rect: borderBox(box), color: borderColor });
+    }
+    var bg = colorOf(s["background-color"]) || colorOf(s.background);
+    if (bg){
+      list.push({ rect: paddingBox(box), color: bg });
+    }
+  }
+  box.children.forEach(function(c){ buildDisplayList(c, list); });
+  return list;
+}
+
+function paintToCanvas(ctx, root, width, height){
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  var list = buildDisplayList(root);
+  list.forEach(function(item){
+    ctx.fillStyle = "rgb(" + item.color.r + "," + item.color.g + "," + item.color.b + ")";
+    ctx.fillRect(item.rect.x, item.rect.y, item.rect.width, item.rect.height);
+  });
+}
+
+function drawBoxOutlines(ctx, box, depth){
+  if (box.kind === "block"){
+    var bb = borderBox(box);
+    ctx.strokeStyle = "rgba(91,91,214,0.85)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bb.x + 0.5, bb.y + 0.5, Math.max(bb.width,0), Math.max(bb.height,0));
+    var tag = box.styled.node.tag;
+    if (tag && bb.width > 4 && bb.height > 4){
+      ctx.font = "10px " + "ui-monospace, Menlo, monospace";
+      ctx.fillStyle = "rgba(91,91,214,0.95)";
+      ctx.fillText(tag, bb.x + 3, bb.y + 11);
+    }
+  }
+  box.children.forEach(function(c){ drawBoxOutlines(ctx, c, depth+1); });
+}
+
+/* ---------- wiring the demo up to the page ---------- */
+
+var htmlInput = document.getElementById("html-in");
+var cssInput = document.getElementById("css-in");
+var canvas = document.getElementById("canvas");
+var ctx = canvas.getContext("2d");
+var status = document.getElementById("status");
+var showBoxes = false;
+var lastRoot = null;
+
+function render(){
+  try {
+    var dom = parseHtml(htmlInput.value);
+    var sheet = parseCss(cssInput.value);
+    var styled = styleTree(dom, sheet, []);
+    var root = layoutTree(styled, canvas.width);
+    lastRoot = root;
+    paintToCanvas(ctx, root, canvas.width, canvas.height);
+    if (showBoxes) drawBoxOutlines(ctx, root, 0);
+    status.textContent = "rendered " + buildDisplayList(root).length + " rectangles";
+  } catch (err) {
+    status.textContent = "error: " + err.message;
+  }
+}
+
+document.getElementById("render-btn").addEventListener("click", render);
+document.getElementById("boxes-btn").addEventListener("click", function(){
+  showBoxes = !showBoxes;
+  render();
+});
+htmlInput.addEventListener("input", render);
+cssInput.addEventListener("input", render);
+
+htmlInput.value = [
+  "<html>",
+  "<body>",
+  '  <div id="header">Kaleidoscope</div>',
+  '  <div class="card">',
+  "    <p>A browser engine in Rust, small enough to read end to end.</p>",
+  "  </div>",
+  '  <div class="card highlight">',
+  "    <p>Edit this HTML or the CSS to see the pipeline run again.</p>",
+  "  </div>",
+  "</body>",
+  "</html>"
+].join("\n");
+
+cssInput.value = [
+  "body { background-color: #ffffff; }",
+  "#header { display: block; width: 480px; height: 48px; background-color: #5b5bd6; color: #ffffff; margin: 12px; padding: 8px; }",
+  ".card { display: block; width: 460px; background-color: #f7f7f9; border-width: 1px; border-color: #ececed; margin: 12px; padding: 14px; height: 60px; }",
+  ".highlight { border-color: #5b5bd6; background-color: #eeeefb; }"
+].join("\n");
+
+render();
+
+})();
+</script>
 </body>
 </html>

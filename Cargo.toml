@@ -1,0 +1,16 @@
+[package]
+name = "kaleidoscope"
+version = "0.1.0"
+edition = "2021"
+description = "A browser engine that parses HTML and CSS, builds the render tree, and paints it."
+authors = ["Pavan Nallamothu"]
+
+[[bin]]
+name = "kaleidoscope"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+
+[profile.release]
+panic = "abort"
