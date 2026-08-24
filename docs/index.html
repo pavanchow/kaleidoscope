@@ -73,6 +73,10 @@
   .go.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
   .go.secondary:hover{border-color:var(--ink);background:var(--panel)}
   .status{font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .presets{margin-top:10px}
+  .preset-label{font-family:var(--mono);font-size:12px;color:var(--faint);margin-right:2px}
+  .chip{cursor:pointer;padding:6px 13px;border-radius:980px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:13px}
+  .chip:hover{border-color:var(--accent);color:var(--accent)}
 
   .canvas-wrap{margin-top:16px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
   canvas{display:block;width:100%;height:auto;background:#fff}
@@ -82,6 +86,9 @@
   .lead{max-width:620px;margin:22px auto 0;text-align:center;color:var(--muted);font-size:18px}
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:900px;margin:48px auto 0}
   @media(max-width:720px){.steps{grid-template-columns:1fr}}
+  .compare-grid{grid-template-columns:repeat(4,1fr);max-width:1000px}
+  @media(max-width:860px){.compare-grid{grid-template-columns:repeat(2,1fr)}}
+  code{font-family:var(--mono);font-size:.92em;background:var(--panel);padding:1px 5px;border-radius:5px}
   .step{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:24px}
   .step .n{display:inline-flex;width:28px;height:28px;border-radius:8px;background:var(--accent-soft);color:var(--accent);align-items:center;justify-content:center;font:700 13px var(--mono);margin-bottom:12px}
   .step h3{font-size:17px;margin-bottom:6px}.step p{color:var(--muted);font-size:15px}
@@ -121,7 +128,15 @@
       <div class="bar">
         <button class="go" id="render-btn">Render</button>
         <button class="go secondary" id="boxes-btn">Toggle box outlines</button>
+        <button class="go secondary" id="png-btn">Download PNG</button>
         <span class="status" id="status">ready</span>
+      </div>
+      <div class="bar presets">
+        <span class="preset-label">Try:</span>
+        <button class="chip" data-preset="sample">Cards</button>
+        <button class="chip" data-preset="cascade">Cascade</button>
+        <button class="chip" data-preset="inherit">Inheritance</button>
+        <button class="chip" data-preset="nested">Nested boxes</button>
       </div>
       <div class="canvas-wrap">
         <canvas id="canvas" width="900" height="480"></canvas>
@@ -135,9 +150,9 @@
     <div class="steps">
       <div class="step"><span class="n">1</span><h3>HTML parser</h3><p>A tolerant tokenizer and tree builder turns tags, attributes, text, and comments into a DOM tree. Unclosed tags recover instead of failing.</p></div>
       <div class="step"><span class="n">2</span><h3>CSS parser</h3><p>Selectors (type, id, class, universal, descendant), declarations, lengths, and colors become a stylesheet of rules in source order.</p></div>
-      <div class="step"><span class="n">3</span><h3>The cascade</h3><p>Rules are matched against every node and sorted by specificity then source order. An inline style attribute always wins.</p></div>
+      <div class="step"><span class="n">3</span><h3>The cascade</h3><p>Rules are matched against every node and sorted by specificity then source order. An inline style attribute always wins, and color and font-size inherit down the tree.</p></div>
       <div class="step"><span class="n">4</span><h3>Block layout</h3><p>Each box takes its containing block's width, stacks its children vertically, and derives its own height, honoring margin, border, and padding.</p></div>
-      <div class="step"><span class="n">5</span><h3>Paint</h3><p>The layout tree becomes a display list of solid rectangles, then the rectangles are rasterized into a pixel buffer, one row at a time.</p></div>
+      <div class="step"><span class="n">5</span><h3>Paint</h3><p>The layout tree becomes a display list of solid rectangles, rasterized with integer alpha compositing into a pixel buffer, then written as a dependency-free PNG or PPM.</p></div>
     </div>
     <pre><span class="c">// the box model equation layout.rs solves for every box</span>
 width + padding + border + margin = containing block width</pre>
@@ -145,9 +160,28 @@ width + padding + border + margin = containing block width</pre>
 
   <section id="source">
     <h2>Read the source, not just the output</h2>
-    <p class="lead">The CLI builds the same pipeline as this page. Point it at an HTML file and a stylesheet, and it writes a PPM image or prints the layout tree with exact pixel coordinates for every box.</p>
-    <pre>kaleidoscope render page.html --css style.css --width 800 --height 600 -o out.ppm
+    <p class="lead">The CLI builds the same pipeline as this page. Point it at an HTML file and a stylesheet, and it writes a PNG or PPM image or prints the layout tree with exact pixel coordinates for every box.</p>
+    <pre>kaleidoscope render page.html --css style.css --width 800 -o out.png
 kaleidoscope layout page.html --css style.css --width 800</pre>
+  </section>
+
+  <section id="agents">
+    <h2>A renderer for agents, not just people</h2>
+    <p class="lead">An MCP server exposes a <code>render_html</code> tool that turns HTML and CSS into a PNG. An AI agent can generate markup and see the result without a headless browser. Kaleidoscope boots in milliseconds and uses a couple of megabytes, where a headless Chromium needs seconds and hundreds of megabytes.</p>
+    <pre>kaleidoscope snapshot --html "&lt;div style='background:teal;height:40px'&gt;&lt;/div&gt;" \
+  --css "div{display:block}" --width 200 --height 80
+<span class="c"># prints a base64 PNG, the same bytes the MCP tool returns</span></pre>
+  </section>
+
+  <section id="compare">
+    <h2>Small enough to actually read</h2>
+    <p class="lead">Kaleidoscope is not trying to render the whole web. It is trying to be the one engine you can follow end to end. The comparison is about comprehensibility, not coverage.</p>
+    <div class="steps compare-grid">
+      <div class="step"><h3>Kaleidoscope</h3><p>Modern Rust, about 2,000 lines. One render path you can read in an afternoon, with a live demo. Maintained.</p></div>
+      <div class="step"><h3>Chromium</h3><p>Tens of millions of lines of C++. Ships the real web, not something a person reads end to end.</p></div>
+      <div class="step"><h3>Servo</h3><p>Rust, research-grade and parallelized. Powerful, but hard to trace a single render path through.</p></div>
+      <div class="step"><h3>Robinson</h3><p>The classic teaching engine that inspired this space, now an unmaintained tutorial.</p></div>
+    </div>
   </section>
 
   <noscript>
@@ -554,7 +588,7 @@ function applyInheritance(styled, parent){
 }
 
 function styleTree(node, sheet, ancestors){
-  var isRoot = ancestors === undefined;
+  var isRoot = !ancestors || ancestors.length === 0;
   ancestors = ancestors || [];
   var styled;
   if (node.type === "element"){
@@ -812,27 +846,69 @@ document.getElementById("boxes-btn").addEventListener("click", function(){
 htmlInput.addEventListener("input", render);
 cssInput.addEventListener("input", render);
 
-htmlInput.value = [
-  "<html>",
-  "<body>",
-  '  <div id="header">Kaleidoscope</div>',
-  '  <div class="card">',
-  "    <p>A browser engine in Rust, small enough to read end to end.</p>",
-  "  </div>",
-  '  <div class="card highlight">',
-  "    <p>Edit this HTML or the CSS to see the pipeline run again.</p>",
-  "  </div>",
-  "</body>",
-  "</html>"
-].join("\n");
+// Download the current canvas as a real PNG, the same format the Rust CLI
+// and the MCP server produce.
+document.getElementById("png-btn").addEventListener("click", function(){
+  var link = document.createElement("a");
+  link.download = "kaleidoscope.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+});
 
-cssInput.value = [
-  "body { background-color: #ffffff; }",
-  "#header { display: block; width: 480px; height: 48px; background-color: #5b5bd6; color: #ffffff; margin: 12px; padding: 8px; }",
-  ".card { display: block; width: 460px; background-color: #f7f7f9; border-width: 1px; border-color: #ececed; margin: 12px; padding: 14px; height: 60px; }",
-  ".highlight { border-color: #5b5bd6; background-color: #eeeefb; }"
-].join("\n");
+// Presets that each highlight one part of the pipeline.
+var PRESETS = {
+  cascade: {
+    html: '<body>\n  <p id="a" class="warn">an id beats a class beats a type</p>\n  <p class="warn">only the class rule matches me</p>\n</body>',
+    css: 'body { background: #ffffff; }\np { display: block; height: 40px; margin: 10px; background: #dddddd; }\n.warn { background: #f6c343; }\n#a { background: #5b5bd6; }'
+  },
+  inherit: {
+    html: '<body>\n  <div class="big">\n    <p>I inherit a large font-size, so my line is tall.</p>\n  </div>\n  <div class="small">\n    <p>I inherit a small one, so my line is short.</p>\n  </div>\n</body>',
+    css: 'body { background: #ffffff; font-size: 16px; }\ndiv { display: block; margin: 10px; padding: 8px; background: #eeeefb; }\n.big { font-size: 44px; }\n.small { font-size: 12px; }'
+  },
+  nested: {
+    html: '<body>\n  <div class="outer">\n    <div class="mid">\n      <div class="inner"></div>\n    </div>\n  </div>\n</body>',
+    css: 'body { background: #ffffff; }\n.outer { display: block; background: #c7c7f5; padding: 16px; margin: 10px; height: 220px; }\n.mid { display: block; background: #8a8af0; padding: 16px; height: 160px; }\n.inner { display: block; background: #5b5bd6; height: 120px; }'
+  }
+};
 
+function loadPreset(name){
+  if (name === "sample"){ setDefaultSample(); render(); return; }
+  var p = PRESETS[name];
+  if (!p) return;
+  htmlInput.value = p.html;
+  cssInput.value = p.css;
+  render();
+}
+
+var chips = document.querySelectorAll(".chip");
+for (var ci = 0; ci < chips.length; ci++){
+  chips[ci].addEventListener("click", function(){ loadPreset(this.getAttribute("data-preset")); });
+}
+
+function setDefaultSample(){
+  htmlInput.value = [
+    "<html>",
+    "<body>",
+    '  <div id="header">Kaleidoscope</div>',
+    '  <div class="card">',
+    "    <p>A browser engine in Rust, small enough to read end to end.</p>",
+    "  </div>",
+    '  <div class="card highlight">',
+    "    <p>Edit this HTML or the CSS to see the pipeline run again.</p>",
+    "  </div>",
+    "</body>",
+    "</html>"
+  ].join("\n");
+
+  cssInput.value = [
+    "body { background-color: #ffffff; }",
+    "#header { display: block; width: 480px; height: 48px; background-color: #5b5bd6; color: #ffffff; margin: 12px; padding: 8px; }",
+    ".card { display: block; width: 460px; background-color: #f7f7f9; border-width: 1px; border-color: #ececed; margin: 12px; padding: 14px; height: 60px; }",
+    ".highlight { border-color: #5b5bd6; background-color: #eeeefb; }"
+  ].join("\n");
+}
+
+setDefaultSample();
 render();
 
 })();
