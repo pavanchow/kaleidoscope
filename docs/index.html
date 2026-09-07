@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <title>Kaleidoscope: a browser engine in Rust you can read end to end</title>
 <meta name="description" content="Kaleidoscope is a browser engine in Rust built from scratch: an HTML parser, a CSS parser, the cascade, block layout, and paint, small enough to read end to end. Try it live in the browser.">
 <meta name="author" content="Pavan Nallamothu (pavanchow)">
@@ -108,6 +109,7 @@
   </div></nav>
 
   <div id="demo" class="hero">
+    <img src="logo.svg" alt="Kaleidoscope logo" width="72" height="72">
     <p class="eyebrow">Rust &middot; from scratch &middot; no browser dependencies</p>
     <h1>HTML and CSS in,<br>a painted image out.</h1>
     <p class="sub">Kaleidoscope is a browser engine in Rust: it parses HTML into a DOM, parses CSS into rules, applies the cascade, lays out boxes, and paints pixels. The whole pipeline, small enough to read end to end. Edit the HTML or CSS below and watch it render, live, right here.</p>
@@ -142,6 +144,13 @@
         <canvas id="canvas" width="900" height="480"></canvas>
       </div>
     </div>
+  </div>
+
+  <div class="stage">
+    <details>
+      <summary>How to use this playground</summary>
+      <p class="lead">Edit the HTML in the left box and the CSS in the right box, then press <b>Render</b> to run the full parse, cascade, layout, and paint pipeline onto the canvas. Use <b>Toggle box outlines</b> to see the layout tree drawn over the render, the <b>Try</b> chips to load ready-made examples, and <b>Download PNG</b> to save the painted result.</p>
+    </details>
   </div>
 
   <section id="how">

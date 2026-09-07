@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Kaleidoscope logo">
+  <defs>
+    <clipPath id="ks-hex">
+      <path d="M64 8 L112 36 L112 92 L64 120 L16 92 L16 36 Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#ks-hex)">
+    <rect x="0" y="0" width="128" height="128" fill="#141821"/>
+    <!-- six mirrored kaleidoscope wedges around the center (64,64) -->
+    <g>
+      <polygon points="64,64 64,4 100,24" fill="#ff5d73"/>
+      <polygon points="64,64 100,24 100,64" fill="#ffb03a"/>
+      <polygon points="64,64 100,64 100,104" fill="#ffd93a"/>
+      <polygon points="64,64 100,104 64,124" fill="#3ad1a8"/>
+      <polygon points="64,64 64,124 28,104" fill="#2f9bff"/>
+      <polygon points="64,64 28,104 28,64" fill="#7a5cff"/>
+      <polygon points="64,64 28,64 28,24" fill="#c455ff"/>
+      <polygon points="64,64 28,24 64,4" fill="#ff5db0"/>
+    </g>
+    <!-- inner facets -->
+    <circle cx="64" cy="64" r="20" fill="#141821" opacity="0.55"/>
+    <polygon points="64,50 78,64 64,78 50,64" fill="#ffffff" opacity="0.92"/>
+  </g>
+  <path d="M64 8 L112 36 L112 92 L64 120 L16 92 L16 36 Z" fill="none" stroke="#e8ebf2" stroke-width="4" stroke-linejoin="round"/>
+</svg>

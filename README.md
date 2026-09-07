@@ -1,3 +1,5 @@
+<img src="docs/logo.svg" alt="Kaleidoscope logo" width="96">
+
 # Kaleidoscope
 
 **Kaleidoscope is a browser engine in Rust, built from scratch, small enough to read end to end.**
