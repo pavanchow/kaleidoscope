@@ -51,6 +51,7 @@
   nav .brand .gem{width:16px;height:16px;transform:rotate(45deg);border-radius:3px;background:linear-gradient(135deg,#9a9af4,#5b5bd6)}
   nav .links{display:flex;gap:26px;align-items:center}
   nav .links a{color:var(--ink);font-size:14.5px}
+  nav .v{color:var(--faint);font-family:var(--mono);font-size:12px}
   @media(max-width:640px){nav .links a:not(.gh){display:none}}
 
   .hero{padding:70px 0 30px;text-align:center}
@@ -105,6 +106,7 @@
     <div class="links">
       <a href="#demo">Demo</a><a href="#how">How it works</a><a href="#source">Source</a>
       <a class="gh" href="https://github.com/pavanchow/kaleidoscope">GitHub</a>
+      <span class="v">v0.1.0</span>
     </div>
   </div></nav>
 
@@ -172,6 +174,16 @@ width + padding + border + margin = containing block width</pre>
     <p class="lead">The CLI builds the same pipeline as this page. Point it at an HTML file and a stylesheet, and it writes a PNG or PPM image or prints the layout tree with exact pixel coordinates for every box.</p>
     <pre>kaleidoscope render page.html --css style.css --width 800 -o out.png
 kaleidoscope layout page.html --css style.css --width 800</pre>
+    <p class="lead" style="font-size:15px;margin-top:34px"><code>layout</code> prints the box tree, one line per box, with the tag name and the exact pixel coordinates layout solved for it. This is the real output for the bundled example at a 800px viewport:</p>
+    <pre><span class="c">$ kaleidoscope layout examples/sample.html --css examples/sample.css --width 800</span>
+html x=0.0 y=0.0 width=800.0 height=240.0
+  body x=0.0 y=0.0 width=800.0 height=240.0
+    div x=8.0 y=8.0 width=300.0 height=40.0
+      #text x=8.0 y=8.0 width=300.0 height=19.2
+    div x=16.0 y=72.0 width=200.0 height=60.0
+      #text x=16.0 y=72.0 width=200.0 height=19.2
+    div x=16.0 y=164.0 width=200.0 height=60.0
+      #text x=16.0 y=164.0 width=200.0 height=19.2</pre>
   </section>
 
   <section id="agents">
