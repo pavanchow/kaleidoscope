@@ -38,14 +38,23 @@
     --line:#ececed;--panel:#f7f7f9;--panel2:#fbfbfd;
     --mono:ui-monospace,SFMono-Regular,Menlo,"SF Mono",monospace;
   }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --accent:#8a8af4;--accent-soft:#21213a;
+      --ink:#e9e9f1;--muted:#a7aab8;--faint:#7c7f8d;
+      --line:#26262c;--panel:#151519;--panel2:#0f0f13;
+    }
+  }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
   body{background:#fff;color:var(--ink);
     font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  @media(prefers-color-scheme:dark){body{background:#0b0b0d}}
   .wrap{max-width:1040px;margin:0 auto;padding:0 28px}
   a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 
   nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.82);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line)}
+  @media(prefers-color-scheme:dark){nav{background:rgba(11,11,13,.72)}}
   nav .row{display:flex;justify-content:space-between;align-items:center;height:56px;max-width:1040px;margin:0 auto;padding:0 28px}
   nav .brand{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:650;letter-spacing:-.01em}
   nav .brand .gem{width:16px;height:16px;transform:rotate(45deg);border-radius:3px;background:linear-gradient(135deg,#9a9af4,#5b5bd6)}
@@ -58,9 +67,13 @@
   .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
   h1{font-size:clamp(38px,6.6vw,66px);line-height:1.05;letter-spacing:-.035em;font-weight:680;margin:18px 0 0}
   .hero p.sub{max-width:640px;margin:24px auto 0;font-size:clamp(17px,2.1vw,21px);color:var(--muted)}
+  .cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+  .cta-row a.go{display:inline-block}
+  .cta-row a.go:hover{text-decoration:none}
 
   .stage{max-width:980px;margin:44px auto 0;padding:0 28px}
   .card{position:relative;background:linear-gradient(180deg,#fbfbff,#f4f4fb);border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:0 1px 0 #fff inset,0 18px 50px -30px rgba(40,40,90,.35);padding:22px}
+  @media(prefers-color-scheme:dark){.card{background:linear-gradient(180deg,#141419,#0f0f13);box-shadow:0 18px 50px -30px rgba(0,0,0,.6)}}
 
   .editors{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   @media(max-width:760px){.editors{grid-template-columns:1fr}}
@@ -73,11 +86,13 @@
   .go{cursor:pointer;padding:11px 22px;border-radius:980px;border:none;background:var(--accent);color:#fff;font-weight:600;font-size:14.5px}
   .go:hover{background:#4a4ac4}
   .go.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  @media(prefers-color-scheme:dark){.go.secondary{background:var(--panel)}}
   .go.secondary:hover{border-color:var(--ink);background:var(--panel)}
   .status{font-family:var(--mono);font-size:12px;color:var(--faint)}
   .presets{margin-top:10px}
   .preset-label{font-family:var(--mono);font-size:12px;color:var(--faint);margin-right:2px}
   .chip{cursor:pointer;padding:6px 13px;border-radius:980px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:13px}
+  @media(prefers-color-scheme:dark){.chip{background:var(--panel)}}
   .chip:hover{border-color:var(--accent);color:var(--accent)}
 
   .canvas-wrap{margin-top:16px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
@@ -115,6 +130,10 @@
     <p class="eyebrow">Rust &middot; from scratch &middot; no browser dependencies</p>
     <h1>HTML and CSS in,<br>a painted image out.</h1>
     <p class="sub">Kaleidoscope is a browser engine in Rust: it parses HTML into a DOM, parses CSS into rules, applies the cascade, lays out boxes, and paints pixels. The whole pipeline, small enough to read end to end. Edit the HTML or CSS below and watch it render, live, right here.</p>
+    <div class="cta-row">
+      <a class="go" href="#how">How it works</a>
+      <a class="go secondary" href="https://github.com/pavanchow/kaleidoscope">Read the source</a>
+    </div>
   </div>
 
   <div class="stage">
