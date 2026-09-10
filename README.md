@@ -6,6 +6,8 @@ Kaleidoscope is a browser engine in Rust, built from scratch and small enough to
 
 **[Live demo](https://pavanchow.github.io/kaleidoscope/)** · MIT licensed · pure Rust, teaching-grade engine
 
+Built from scratch by [Pavan Nallamothu](https://pavanchow.github.io/) ([LinkedIn](https://www.linkedin.com/in/pavanchow/), [GitHub](https://github.com/pavanchow)).
+
 ## An HTML parser and CSS parser from scratch
 
 The HTML parser is tolerant. It builds a DOM tree out of elements, attributes, text, and comments, handles nested tags, self-closing and void elements, and recovers from an unclosed tag instead of failing. The CSS parser turns a stylesheet into rules: type, id, class, and universal selectors, descendant combinators, and declarations for `display`, `width`, `height`, `margin`, `padding`, `border-width`, `border-color`, `background`/`background-color`, `color`, and `font-size`. Lengths parse in px, colors parse as `#rgb`, `#rrggbb`, and a handful of named colors.
